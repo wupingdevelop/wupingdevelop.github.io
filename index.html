@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>英文单词消消乐</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+/* CSS 样式 (保持不变) */
+    body { font-family: 'Comic Sans MS', cursive, sans-serif; background-color: #f0f8ff; margin: 0; }
+    h1 { text-align: center; color: #336699; }
+    .matching-area { display: flex; justify-content: space-around; margin-bottom: 20px; flex-direction: column; }
+    .word-list { width: 90%; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 15px; }
+    .word-item { border-radius: 25px; padding: 10px 20px; margin: 5px; cursor: pointer;
+      transition: background-color: 0.3s, transform: 0.2s; display: inline-block; border-width: 3px;
+      border-style: dashed; box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3); text-align: center; font-size: 1.em; }
+    .word-item:hover { transform: scale(1.05); opacity: 0.8; }
+    .selected { filter: brightness(0.9); color: purple !important; }
+    #result-area, #score-area, #error-count-area {
+        text-align: center;
+        font-size: 1.2em;
+        margin-bottom: 10px;
+        color: #336699; /* Base color */
+    }
+    /* Score and error count styles */
+    #score-area {
+        font-weight: bold;
+        color: green; /* Green color for score */
+    }
+
+    #error-count-area {
+        font-weight: bold;
+        color: red;   /* Red color for error count */
+    }
+    /* 正确和错误提示的样式 */
+    .correct-message { color: green; }
+    .error-message { color: red; }
+
+    .english-word { color: white; background-color: #d9534f; border-color: #d9534f; }
+    .chinese-meaning { color: white; background-color: #5bc0de; border-color: #5bc0de; }
+    #restart-button { display: block; margin: 20px auto; padding: 10px 25px;
+      font-size: 1.2em; font-weight: bold; color: white; background-color: #4CAF50; border: none;
+      border-radius: 25px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+      transition: background-color: 0.3s, transform: 0.2s; width: 80%; max-width: 300px;  }
+    #restart-button:hover { background-color: #3e8e41; transform: scale(1.05); }
+
+    /* 单词管理按钮样式 */
+    #customize-button-container {
+        position: relative; /* 使内部的按钮可以使用绝对定位 */
+        text-align: center; /* 使按钮水平居中 */
+        margin: 20px 0;
+    }
+     #customize-button {
+        padding: 10px 25px;
+        font-size: 1.2em;
+        font-weight: bold;
+        color: white;
+        background-color: #f0ad4e;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        transition: background-color: 0.3s, transform: 0.2s;
+        /* 不需要设置宽度，让它自适应内容 */
+    }
+
+    #customize-button:hover {
+        background-color: #ec971f;
+        transform: scale(1.05);
+    }
+
+
+     #word-management-layer {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 2px solid #336699;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 90%;
+            max-width: 600px;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        #word-management {
+            text-align: center;
+        }
+    #word-management-layer h2 { color: #336699; margin-bottom: 15px; }
+
+    #word-table {
+        width: 100%;
+        margin-top: 20px;
+        border-collapse: collapse;
+    }
+
+    #word-table th, #word-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+        font-size: 1em;
+    }
+    #word-table th { background-color: #f0f8ff; }
+
+    #word-table input[type="text"] {
+        width: 90%;
+        padding: 5px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+    #word-table input[type="text"]:focus{ outline: none; border-color: #7ab8cc;}
+
+    /* 关闭按钮的容器 */
+    #close-button-container {
+        position: absolute;
+        top: 5px;   /* 调整为正值 */
+        right: 5px;  /* 调整为正值 */
+        z-index: 1001;
+    }
+
+    #close-word-management {
+        font-size: 30px; /* 增大字体 */
+        color: #336699;
+        cursor: pointer;
+        transition: color 0.3s;
+        border: 2px solid #336699;
+        background-color: white;
+        padding: 4px 10px; /* 调整 padding */
+        border-radius: 50%;
+        line-height: 1;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); /* 添加阴影 */
+    }
+
+
+    #close-word-management:hover {
+        color: black;
+         transform: scale(1.1); /* 鼠标悬停时放大 */
+    }
+    .table-btn { padding: 5px 10px; margin: 2px; border: none; border-radius: 5px; color: white;
+      cursor: pointer; font-size: 1em;}
+    .table-btn:hover {opacity: 0.8;}
+    .delete-btn { background-color: #d9534f; }
+    .add-row-btn { background-color: #5cb85c;  } /* Removed margin-bottom */
+    .save-btn { background-color: #337ab7; }
+    .save-btn:hover{background-color: #286090;}
+
+    /* New styles for button container */
+    #button-container {
+        display: flex;
+        justify-content: center; /* Center buttons horizontally */
+        gap: 10px; /* Add some space between buttons */
+        margin-bottom: 10px; /* Space below the buttons */
+    }
+
+  </style>
+</head>
+<body>
+  <h1>英文单词消消乐</h1>
+  <div class="matching-area">
+    <div class="word-list" id="english-words"></div>
+    <div class="word-list" id="chinese-meanings"></div>
+  </div>
+  <div id="score-area">得分：0</div>
+  <div id="error-count-area">错误次数：0</div>
+  <div id="result-area"></div>
+  <button id="restart-button" onclick="startGame()">重新开始</button>
+ <div id="customize-button-container">
+    <button id="customize-button" onclick="showWordManagement()">自定义</button>
+ </div>
+
+  <div id="word-management-layer">
+    <!-- 关闭按钮容器 -->
+    <div id="close-button-container">
+        <button id="close-word-management" onclick="hideWordManagement()">&times;</button>
+    </div>
+    <div id="word-management">
+      <h2>单词管理</h2>
+      <!-- Button container for Add and Save -->
+      <div id="button-container">
+          <button class="table-btn add-row-btn" onclick="addRow()">增加一行</button>
+          <button class="table-btn save-btn" onclick="saveChanges()">保存更改</button>
+      </div>
+      <table id="word-table">
+        <thead>
+          <tr>
+            <th>英文单词</th>
+            <th>中文意思</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="word-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p>游戏说明：请将英文单词与中文意思进行配对。点击选择，再次点击取消选择。</p>
+
+  <script>
+   let words = [
+      { english: "apple", chinese: "苹果" },      { english: "banana", chinese: "香蕉" },
+      { english: "cat", chinese: "猫" },          { english: "dog", chinese: "狗" },
+      { english: "book", chinese: "书" },         { english: "pen", chinese: "钢笔" },
+      { english: "school", chinese: "学校" },     { english: "teacher", chinese: "老师" },
+      { english: "student", chinese: "学生" },    { english: "computer", chinese: "电脑" },
+      { english: "phone", chinese: "电话" },       { english: "table", chinese: "桌子" },
+      { english: "chair", chinese: "椅子" },      { english: "bed", chinese: "床" },
+      { english: "door", chinese: "门" },         { english: "window", chinese: "窗户" },
+      { english: "car", chinese: "汽车" },        { english: "bike", chinese: "自行车" },
+      { english: "train", chinese: "火车" },      { english: "plane", chinese: "飞机" },
+      { english: "sun", chinese: "太阳" },       { english: "moon", chinese: "月亮" },
+      { english: "water", chinese: "水" },       { english: "fire", chinese: "火" },
+      { english: "food", chinese: "食物" },      { english: "drink", chinese: "饮料" },
+      { english: "happy", chinese: "快乐" },      { english: "sad", chinese: "悲伤" },
+      { english: "big", chinese: "大" },        { english: "small", chinese: "小" },
+      { english: "good", chinese: "好" },       { english: "bad", chinese: "坏" }
+    ];
+
+    let currentWords = [...words];
+    let selectedEnglish = null;
+    let selectedChinese = null;
+    let score = 0;
+    let errorCount = 0; // Initialize error count
+
+    function renderWordLists() {
+      const englishList = document.getElementById("english-words");
+      const chineseList = document.getElementById("chinese-meanings");
+      englishList.innerHTML = "";
+      chineseList.innerHTML = "";
+      const shuffledWords = [...currentWords];
+      shuffle(shuffledWords);
+      const shuffledChinese = shuffledWords.map(w => w.chinese);
+      shuffle(shuffledChinese);
+
+      shuffledWords.forEach(word => {
+        const englishItem = document.createElement("div");
+        englishItem.className = "word-item english-word";
+        englishItem.innerText = word.english;
+        englishItem.onclick = () => selectWord("english", word, englishItem);
+        englishList.appendChild(englishItem);
+      });
+      shuffledChinese.forEach(meaning => {
+        const chineseItem = document.createElement("div");
+        chineseItem.className = "word-item chinese-meaning";
+        chineseItem.innerText = meaning;
+        chineseItem.onclick = () => selectWord("chinese", meaning, chineseItem);
+        chineseList.appendChild(chineseItem);
+      });
+    }
+
+    function renderWordTable() {
+      const tableBody = document.getElementById("word-table-body");
+      tableBody.innerHTML = "";
+      words.forEach((word, index) => {
+        const row = createTableRow(word, index);
+        tableBody.appendChild(row);
+      });
+    }
+
+    function createTableRow(word, index) {
+      const row = document.createElement("tr");
+      const englishCell = document.createElement("td");
+      const chineseCell = document.createElement("td");
+      const actionsCell = document.createElement("td");
+      const englishInput = document.createElement("input");
+      englishInput.type = "text";
+      englishInput.value = word.english;
+      englishInput.onchange = (event) => updateWordInTable(index, "english", event.target.value);
+      englishCell.appendChild(englishInput);
+      const chineseInput = document.createElement("input");
+      chineseInput.type = "text";
+      chineseInput.value = word.chinese;
+      chineseInput.onchange = (event) => updateWordInTable(index, "chinese", event.target.value);
+      chineseCell.appendChild(chineseInput);
+      const deleteBtn = document.createElement("button");
+      deleteBtn.innerText = "删除";
+      deleteBtn.className = "table-btn delete-btn";
+      deleteBtn.onclick = () => deleteRow(index);
+      actionsCell.appendChild(deleteBtn);
+      row.appendChild(englishCell);
+      row.appendChild(chineseCell);
+      row.appendChild(actionsCell);
+      return row;
+    }
+
+    function updateWordInTable(index, field, newValue) {
+      if (index >= 0) {
+          words[index][field] = newValue;
+        }
+    }
+
+    function deleteRow(index) {
+        words.splice(index, 1); // 从 words 数组中删除
+        renderWordTable();
+    }
+
+    function addRow() {
+        const tableBody = document.getElementById("word-table-body");
+        const newRow = createTableRow({ english: "", chinese: "" }, words.length);
+        // Insert the new row at the beginning:
+        tableBody.insertBefore(newRow, tableBody.firstChild);
+        const firstInput = newRow.querySelector("input");
+        if (firstInput) {
+            firstInput.focus();
+        }
+    }
+    function saveChanges() {
+        const newWords = [];
+        const rows = document.getElementById("word-table-body").rows;
+        const englishWords = [];
+        for (let i = 0; i < rows.length; i++) {
+          const englishInput = rows[i].cells[0].querySelector("input");
+          if (englishWords.includes(englishInput.value.trim())) {
+              alert("英文单词不能重复！"); return;}
+          if(englishInput.value.trim()){
+              englishWords.push(englishInput.value.trim());}
+        }
+
+         for(let i=0; i < rows.length; i++){
+            const englishInput = rows[i].cells[0].querySelector("input");
+            const chineseInput = rows[i].cells[1].querySelector("input");
+             if (!englishInput.value.trim() || !chineseInput.value.trim()) {
+                  alert("英文单词和中文意思都不能为空！"); return; }
+         }
+        for (let i = 0; i < rows.length; i++) {
+            const englishInput = rows[i].cells[0].querySelector("input");
+            const chineseInput = rows[i].cells[1].querySelector("input");
+            const english = englishInput.value.trim();
+            const chinese = chineseInput.value.trim();
+            newWords.push({ english, chinese });
+        }
+        words = newWords;
+        currentWords = [...words];
+        renderWordLists();
+    }
+
+    function showWordManagement() { document.getElementById("word-management-layer").style.display = "block"; renderWordTable(); }
+
+    function hideWordManagement() {
+        saveChanges();
+        document.getElementById("word-management-layer").style.display = "none";
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+    function selectWord(type, wordObj, element) {
+      if (type === "english") {
+        if (selectedEnglish) { selectedEnglish.element.classList.remove("selected"); }
+        if (selectedEnglish && selectedEnglish.word === wordObj.english) { selectedEnglish = null;
+        } else { selectedEnglish = { word: wordObj.english, element}; element.classList.add("selected");}
+      } else {
+        if (selectedChinese) { selectedChinese.element.classList.remove("selected");}
+        if (selectedChinese && selectedChinese.word === wordObj) { selectedChinese = null;
+        } else { selectedChinese = { word: wordObj, element }; element.classList.add("selected"); }
+      }
+      if (selectedEnglish && selectedChinese) { checkAnswers(); }
+    }
+
+    function checkAnswers() {
+      if (!selectedEnglish || !selectedChinese) {
+        document.getElementById("result-area").innerText = "请选择一对单词和中文意思！";
+        return;
+      }
+      const correctChinese = currentWords.find(w => w.english === selectedEnglish.word).chinese;
+
+      const resultArea = document.getElementById("result-area"); // 获取 result-area 元素
+
+      if (selectedChinese.word === correctChinese) {
+        resultArea.innerText = "配对正确！";
+        resultArea.className = "correct-message"; // 设置正确提示的 class
+        score++;
+        document.getElementById("score-area").innerText = "得分：" + score;
+        currentWords = currentWords.filter(w => w.english !== selectedEnglish.word);
+        renderWordLists();
+      } else {
+        resultArea.innerText = "配对错误，请再试一次。";
+        resultArea.className = "error-message";  // 设置错误提示的 class
+        errorCount++; // Increment error count
+        document.getElementById("error-count-area").innerText = "错误次数：" + errorCount; // Update error count display
+        selectedEnglish.element.classList.remove("selected");
+        selectedChinese.element.classList.remove("selected");
+      }
+      selectedEnglish = null;
+      selectedChinese = null;
+      if (currentWords.length === 0) {
+        resultArea.innerText = "恭喜你完成了所有配对！";
+         resultArea.className = "";
+      }
+    }
+
+    function startGame() {
+      score = 0;
+      errorCount = 0; // Reset error count
+      document.getElementById("score-area").innerText = "得分：" + score;
+      document.getElementById("error-count-area").innerText = "错误次数：" + errorCount; // Reset error count display
+      currentWords = [...words];
+      renderWordLists();
+      selectedEnglish = null;
+      selectedChinese = null;
+      document.getElementById("result-area").innerText = "";
+      document.getElementById("result-area").className = ""; // 清除之前的 class
+    }
+    document.addEventListener("DOMContentLoaded", () => { startGame(); });
+  </script>
+</body>
+</html>
