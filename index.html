@@ -5,7 +5,7 @@
   <title>英文单词消消乐</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-/* CSS 样式 (保持不变) */
+    /* CSS 样式 (基本保持不变) */
     body { font-family: 'Comic Sans MS', cursive, sans-serif; background-color: #f0f8ff; margin: 0; }
     h1 { text-align: center; color: #336699; }
     .matching-area { display: flex; justify-content: space-around; margin-bottom: 20px; flex-direction: column; }
@@ -156,10 +156,59 @@
         margin-bottom: 10px; /* Space below the buttons */
     }
 
+      /* Style for the word count selector */
+    #word-count-selector {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+    #word-count-selector label {
+        margin: 0 10px;
+        font-size: 1.1em;
+    }
+      #word-count-selector input[type="radio"] {
+        margin-right: 5px;
+    }
+     /* Style for the import button */
+    #import-button-container {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    #import-button {
+       padding: 8px 15px; /* Smaller padding */
+        font-size: 1em;   /* Smaller font size */
+        font-weight: normal; /* Normal font weight */
+        color: white;
+        background-color: #5bc0de; /* Different color */
+        border: none;
+        border-radius: 15px; /* Smaller border radius */
+        cursor: pointer;
+        box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3); /* Smaller shadow */
+        transition: background-color 0.3s, transform 0.2s;
+        margin: 0 5px; /* Add horizontal margin */
+    }
+
+    #import-button:hover {
+        background-color: #46b8da;
+        transform: scale(1.03);
+    }
+     /* Style for the file input (hidden) */
+    #file-input {
+        display: none;
+    }
+
   </style>
 </head>
 <body>
   <h1>英文单词消消乐</h1>
+
+  <!-- Word Count Selector -->
+  <div id="word-count-selector">
+        <label><input type="radio" name="word-count" value="6" checked> 6个单词</label>
+        <label><input type="radio" name="word-count" value="10"> 10个单词</label>
+        <label><input type="radio" name="word-count" value="20"> 20个单词</label>
+  </div>
+
   <div class="matching-area">
     <div class="word-list" id="english-words"></div>
     <div class="word-list" id="chinese-meanings"></div>
@@ -182,6 +231,11 @@
       <!-- Button container for Add and Save -->
       <div id="button-container">
           <button class="table-btn add-row-btn" onclick="addRow()">增加一行</button>
+           <!-- Import Button -->
+          <div id="import-button-container">
+              <input type="file" id="file-input" accept=".xlsx, .xls" onchange="importExcel(event)">
+              <button id="import-button" onclick="document.getElementById('file-input').click()">导入</button>
+          </div>
           <button class="table-btn save-btn" onclick="saveChanges()">保存更改</button>
       </div>
       <table id="word-table">
@@ -199,6 +253,7 @@
 
   <p>游戏说明：请将英文单词与中文意思进行配对。点击选择，再次点击取消选择。</p>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
    let words = [
       { english: "apple", chinese: "苹果" },      { english: "banana", chinese: "香蕉" },
@@ -219,38 +274,46 @@
       { english: "good", chinese: "好" },       { english: "bad", chinese: "坏" }
     ];
 
-    let currentWords = [...words];
+    let currentWords = []; // Initialize as empty array
+    let wordCount = 6; // Default word count
     let selectedEnglish = null;
     let selectedChinese = null;
     let score = 0;
-    let errorCount = 0; // Initialize error count
+    let errorCount = 0;
+    let englishOrder = []; // to store initial order
 
     function renderWordLists() {
-      const englishList = document.getElementById("english-words");
-      const chineseList = document.getElementById("chinese-meanings");
-      englishList.innerHTML = "";
-      chineseList.innerHTML = "";
-      const shuffledWords = [...currentWords];
-      shuffle(shuffledWords);
-      const shuffledChinese = shuffledWords.map(w => w.chinese);
-      shuffle(shuffledChinese);
+        const englishList = document.getElementById("english-words");
+        const chineseList = document.getElementById("chinese-meanings");
+        englishList.innerHTML = "";
+        chineseList.innerHTML = "";
 
-      shuffledWords.forEach(word => {
-        const englishItem = document.createElement("div");
-        englishItem.className = "word-item english-word";
-        englishItem.innerText = word.english;
-        englishItem.onclick = () => selectWord("english", word, englishItem);
-        englishList.appendChild(englishItem);
-      });
-      shuffledChinese.forEach(meaning => {
-        const chineseItem = document.createElement("div");
-        chineseItem.className = "word-item chinese-meaning";
-        chineseItem.innerText = meaning;
-        chineseItem.onclick = () => selectWord("chinese", meaning, chineseItem);
-        chineseList.appendChild(chineseItem);
-      });
+        // Use the englishOrder array if it has elements; otherwise, create a new shuffled array
+      const shuffledWords = englishOrder.length > 0 ? englishOrder.map(index => currentWords[index]) : [...currentWords];
+
+        if(englishOrder.length === 0){
+              shuffle(shuffledWords);
+        }
+
+        const shuffledChinese = shuffledWords.map(w => w.chinese);
+        shuffle(shuffledChinese);
+
+        shuffledWords.forEach(word => {
+            const englishItem = document.createElement("div");
+            englishItem.className = "word-item english-word";
+            englishItem.innerText = word.english;
+            englishItem.onclick = () => selectWord("english", word, englishItem);
+            englishList.appendChild(englishItem);
+        });
+
+        shuffledChinese.forEach(meaning => {
+            const chineseItem = document.createElement("div");
+            chineseItem.className = "word-item chinese-meaning";
+            chineseItem.innerText = meaning;
+            chineseItem.onclick = () => selectWord("chinese", meaning, chineseItem);
+            chineseList.appendChild(chineseItem);
+        });
     }
-
     function renderWordTable() {
       const tableBody = document.getElementById("word-table-body");
       tableBody.innerHTML = "";
@@ -333,7 +396,7 @@
             newWords.push({ english, chinese });
         }
         words = newWords;
-        currentWords = [...words];
+        selectWords(); // select words after save changes
         renderWordLists();
     }
 
@@ -343,71 +406,190 @@
         saveChanges();
         document.getElementById("word-management-layer").style.display = "none";
     }
-
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-    }
-    function selectWord(type, wordObj, element) {
-      if (type === "english") {
-        if (selectedEnglish) { selectedEnglish.element.classList.remove("selected"); }
-        if (selectedEnglish && selectedEnglish.word === wordObj.english) { selectedEnglish = null;
-        } else { selectedEnglish = { word: wordObj.english, element}; element.classList.add("selected");}
-      } else {
-        if (selectedChinese) { selectedChinese.element.classList.remove("selected");}
-        if (selectedChinese && selectedChinese.word === wordObj) { selectedChinese = null;
-        } else { selectedChinese = { word: wordObj, element }; element.classList.add("selected"); }
-      }
-      if (selectedEnglish && selectedChinese) { checkAnswers(); }
-    }
-
-    function checkAnswers() {
-      if (!selectedEnglish || !selectedChinese) {
-        document.getElementById("result-area").innerText = "请选择一对单词和中文意思！";
-        return;
-      }
-      const correctChinese = currentWords.find(w => w.english === selectedEnglish.word).chinese;
-
-      const resultArea = document.getElementById("result-area"); // 获取 result-area 元素
-
-      if (selectedChinese.word === correctChinese) {
-        resultArea.innerText = "配对正确！";
-        resultArea.className = "correct-message"; // 设置正确提示的 class
-        score++;
-        document.getElementById("score-area").innerText = "得分：" + score;
-        currentWords = currentWords.filter(w => w.english !== selectedEnglish.word);
+      // Add this function to select words randomly
+    function selectWords() {
+        const shuffled = [...words];
+        shuffle(shuffled);
+        currentWords = shuffled.slice(0, wordCount);
+        englishOrder = []; // Reset the order when new words select
         renderWordLists();
-      } else {
-        resultArea.innerText = "配对错误，请再试一次。";
-        resultArea.className = "error-message";  // 设置错误提示的 class
-        errorCount++; // Increment error count
-        document.getElementById("error-count-area").innerText = "错误次数：" + errorCount; // Update error count display
-        selectedEnglish.element.classList.remove("selected");
-        selectedChinese.element.classList.remove("selected");
-      }
-      selectedEnglish = null;
-      selectedChinese = null;
-      if (currentWords.length === 0) {
+    }
+
+    // Modified shuffle function to create an order array
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function selectWord(type, wordObj, element) {
+        if (type === "english") {
+            if (selectedEnglish) {
+                selectedEnglish.element.classList.remove("selected");
+            }
+            if (selectedEnglish && selectedEnglish.word === wordObj.english) {
+                selectedEnglish = null; // Deselect if clicking the same word
+            } else {
+                selectedEnglish = { word: wordObj.english, element };
+                element.classList.add("selected");
+            }
+        } else { // type === "chinese"
+            if (selectedChinese) {
+                selectedChinese.element.classList.remove("selected");
+            }
+            if (selectedChinese && selectedChinese.word === wordObj) {
+                selectedChinese = null;  //Deselect
+            } else {
+                selectedChinese = { word: wordObj, element };
+                element.classList.add("selected");
+            }
+        }
+
+        if (selectedEnglish && selectedChinese) {
+            checkAnswers();
+        }
+    }
+
+function checkAnswers() {
+        if (!selectedEnglish || !selectedChinese) {
+            document.getElementById("result-area").innerText = "请选择一对单词和中文意思！";
+            return;
+        }
+
+        const correctChinese = currentWords.find(w => w.english === selectedEnglish.word).chinese;
+        const resultArea = document.getElementById("result-area");
+
+          if (selectedChinese.word === correctChinese) {
+            resultArea.innerText = "配对正确！";
+            resultArea.className = "correct-message";
+            score++;
+            document.getElementById("score-area").innerText = "得分：" + score;
+
+              // Find the index of the matched word in currentWords
+            const matchedIndex = currentWords.findIndex(w => w.english === selectedEnglish.word);
+
+            // Remove the matched word from currentWords using splice
+            currentWords.splice(matchedIndex, 1);
+
+            // Remove the index from englishOrder as well
+            if (englishOrder.length > 0) {
+                englishOrder.splice(matchedIndex, 1);
+            }
+
+            // Clear selections
+            selectedEnglish = null;
+            selectedChinese = null;
+
+            renderWordLists(); // Re-render the lists
+
+        } else {
+            resultArea.innerText = "配对错误，请再试一次。";
+            resultArea.className = "error-message";
+            errorCount++;
+            document.getElementById("error-count-area").innerText = "错误次数：" + errorCount;
+
+            // Deselect the words
+            selectedEnglish.element.classList.remove("selected");
+            selectedChinese.element.classList.remove("selected");
+            selectedEnglish = null;
+            selectedChinese = null;
+        }
+    if (currentWords.length === 0) {
         resultArea.innerText = "恭喜你完成了所有配对！";
          resultArea.className = "";
       }
+
     }
 
     function startGame() {
       score = 0;
-      errorCount = 0; // Reset error count
+      errorCount = 0;
       document.getElementById("score-area").innerText = "得分：" + score;
-      document.getElementById("error-count-area").innerText = "错误次数：" + errorCount; // Reset error count display
-      currentWords = [...words];
-      renderWordLists();
+      document.getElementById("error-count-area").innerText = "错误次数：" + errorCount;
+        // Get selected word count from radio buttons
+        wordCount = parseInt(document.querySelector('input[name="word-count"]:checked').value);
+      selectWords(); // Select words based on the chosen count
       selectedEnglish = null;
       selectedChinese = null;
       document.getElementById("result-area").innerText = "";
-      document.getElementById("result-area").className = ""; // 清除之前的 class
+        document.getElementById("result-area").className = "";
     }
-    document.addEventListener("DOMContentLoaded", () => { startGame(); });
+  // Function to import words from Excel
+   function importExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = e.target.result;
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const sheetName = workbook.SheetNames[0]; // Get the first sheet
+            const worksheet = workbook.Sheets[sheetName];
+
+            // Convert the sheet to JSON, skipping the header row
+            const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
+              // Validate that the sheet has the correct columns
+            if (!excelData || excelData.length === 0 || excelData[0][0] !== "序号" || excelData[0][1] !== "word" || excelData[0][2] !== "mean") {
+                alert("导入失败, Excel 格式不正确。请使用包含 '序号', 'word', 'mean' 列的模板。");
+                return;
+            }
+
+            const newWords = [];
+            const englishWords = [];
+            // Start from row 1 to skip headers
+            for (let i = 1; i < excelData.length; i++) {
+                const row = excelData[i];
+                if (!row[1] || !row[2]) {
+                  alert(`导入失败，第 ${i + 1} 行数据不完整。 英文单词和中文意思都不能为空！`)
+                  return;
+                }
+
+                const english = String(row[1]).trim();
+                const chinese = String(row[2]).trim();
+
+                if(!english || !chinese){
+                   alert(`导入失败，第 ${i + 1} 行数据不完整。 英文单词和中文意思都不能为空！`);
+                   return;
+                }
+
+                // Check for duplicate English words
+                if (englishWords.includes(english)) {
+                    alert(`导入失败, 英文单词 "${english}" 重复。`);
+                    return;
+                }
+                englishWords.push(english);
+                newWords.push({ english: english, chinese: chinese });
+
+            }
+
+            // If all checks pass, update the word list
+            if (newWords.length > 0) {
+                words = newWords;
+                selectWords(); // Select words after importing
+                renderWordTable();
+                // renderWordLists(); // selectWords() already renders.
+                alert("导入成功！");
+            }
+        };
+
+        reader.onerror = function(ex) {
+            console.error("Error reading file:", ex);
+            alert("导入失败，读取文件时发生错误。");
+        };
+
+        reader.readAsBinaryString(file);
+    }
+    document.addEventListener("DOMContentLoaded", () => {
+          // Add event listener for word count radio buttons
+        document.querySelectorAll('input[name="word-count"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                wordCount = parseInt(radio.value); // Update wordCount
+                selectWords();   // Reselect words based on the new count
+            });
+        });
+      startGame();
+    });
   </script>
 </body>
 </html>
